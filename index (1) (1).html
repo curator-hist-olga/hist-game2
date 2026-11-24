@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Козацький квест: шлях до булави</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#e3241f; --red-d:#c81c18; --ink:#141414; --mute:#6f6f6f; --line:#e6e6e6;
+    --ok:#1f8a4c; --ok-bg:#e8f5ed; --bad-bg:#fdeceb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    font-family:'Onest',system-ui,sans-serif;color:var(--ink);
+    background-color:var(--red);
+    background-image:
+      radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.10),transparent 55%),
+      radial-gradient(ellipse at 80% 90%,rgba(0,0,0,.14),transparent 60%),
+      linear-gradient(rgba(255,255,255,.09) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.09) 1px,transparent 1px);
+    background-size:auto,auto,44px 44px,44px 44px;
+    background-attachment:fixed;
+    min-height:100vh;display:flex;justify-content:center;padding:28px 16px 40px;
+  }
+  .app{width:100%;max-width:620px;display:flex;flex-direction:column;gap:18px}
+  .head{text-align:center;color:#fff;padding:18px 0 4px}
+  .head .kicker{font-weight:600;font-size:15px;letter-spacing:.06em;text-transform:uppercase;opacity:.95}
+  .head h1{font-weight:800;font-size:38px;line-height:1.05;text-transform:uppercase;margin-top:10px;letter-spacing:-.01em}
+  .card{background:#fff;border-radius:18px;padding:28px 26px;position:relative}
+  .btn{
+    font-family:inherit;font-weight:800;font-size:16px;letter-spacing:.04em;text-transform:uppercase;
+    border:none;cursor:pointer;background:var(--red);color:#fff;
+    padding:17px 22px;border-radius:999px;width:100%;transition:background .15s,transform .08s,opacity .2s;
+  }
+  .btn:hover{background:var(--red-d)}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.35;cursor:default}
+
+  /* Pill divider (like "З 1663 — ДВА ГЕТЬМАНИ") */
+  .pill-div{display:flex;align-items:center;gap:0;margin:0 -26px 22px}
+  .pill-div::before,.pill-div::after{content:"";flex:1;height:1.5px;background:var(--red)}
+  .pill{border:2px solid var(--red);color:var(--red);border-radius:999px;padding:6px 16px;
+    font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;background:#fff}
+  .label{color:var(--red);font-weight:800;text-transform:uppercase;font-size:14px;letter-spacing:.03em;margin-bottom:8px}
+
+  /* Start */
+  .rows .row{display:grid;grid-template-columns:110px 1fr;gap:18px;padding:16px 0;border-bottom:1.5px solid var(--line)}
+  .rows .row:last-child{border-bottom:none}
+  .rows .k{font-weight:800;font-size:30px;line-height:1}
+  .rows .v{font-size:17px;line-height:1.35}
+  .rows .v b{font-weight:800}
+
+  /* HUD */
+  .hud{display:flex;align-items:center;gap:10px;color:#fff}
+  .timer{font-weight:800;font-size:22px;background:#fff;color:var(--red);padding:8px 18px;border-radius:999px;min-width:100px;text-align:center;font-variant-numeric:tabular-nums}
+  .timer.warn{background:var(--ink);color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{50%{transform:scale(1.06)}}
+  .score{margin-left:auto;font-weight:800;font-size:18px;border:2px solid #fff;padding:7px 16px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+  .timebar{height:4px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden}
+  .timebar div{height:100%;background:#fff;transition:width 1s linear}
+
+  /* Map */
+  .map{display:flex;justify-content:space-between;align-items:flex-start;position:relative}
+  .map::before{content:"";position:absolute;left:10%;right:10%;top:19px;height:1.5px;background:rgba(255,255,255,.55);z-index:0}
+  .st{z-index:1;display:flex;flex-direction:column;align-items:center;width:20%;text-align:center}
+  .st .dot{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:16px;
+    background:var(--red);color:#fff;border:2px solid rgba(255,255,255,.6);transition:.3s}
+  .st.active .dot{background:#fff;color:var(--red);border-color:#fff;transform:scale(1.15)}
+  .st.done .dot{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .st span{color:rgba(255,255,255,.8);font-size:11px;margin-top:7px;line-height:1.15;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+  .st.active span{color:#fff;font-weight:800}
+
+  /* Question */
+  .qmeta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .qcount{font-size:13px;color:var(--mute);font-weight:600}
+  .q{font-size:21px;font-weight:600;line-height:1.35;margin-bottom:20px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{font-family:inherit;font-size:28px;font-weight:800;padding:16px 10px;border-radius:14px;cursor:pointer;
+    background:#fff;border:1.5px solid var(--line);color:var(--ink);transition:.15s}
+  @media (hover:hover){.opt:hover:not(:disabled){border-color:var(--red);color:var(--red)}}
+  .opt.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+  .opt.bad{background:var(--bad-bg);color:var(--red);border-color:var(--red)}
+  .opt:disabled{cursor:default}
+  .tf .opt{font-size:18px;text-transform:uppercase;letter-spacing:.03em}
+  .order-list{display:flex;flex-direction:column;margin-bottom:16px;border-top:1.5px solid var(--line)}
+  .oitem{display:flex;align-items:center;gap:14px;font-family:inherit;font-size:17px;text-align:left;padding:14px 4px;
+    background:#fff;border:none;border-bottom:1.5px solid var(--line);cursor:pointer;color:var(--ink);transition:.15s}
+  @media (hover:hover){.oitem:hover:not(:disabled){color:var(--red)}}
+  .oitem .num{flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;
+    border:1.5px solid var(--line);color:var(--mute)}
+  .oitem.sel .num{background:var(--red);border-color:var(--red);color:#fff}
+  .oitem.ok .num{background:var(--ok);border-color:var(--ok);color:#fff}
+  .oitem.bad .num{background:var(--ink);border-color:var(--ink);color:#fff}
+  .oitem.bad{color:var(--red)}
+  .oitem .yr{margin-left:auto;font-weight:800;font-size:18px;display:none;white-space:nowrap;color:var(--ink)}
+  .oitem.reveal .yr{display:block}
+  .hint{font-size:14px;color:var(--mute);margin:-8px 0 14px}
+
+  .feedback{margin-top:18px;border-radius:14px;padding:14px 16px;line-height:1.45;font-size:15px;display:none}
+  .feedback.show{display:block;animation:pop .25s}
+  .feedback.ok{background:var(--ok-bg)}
+  .feedback.bad{background:var(--bad-bg)}
+  .feedback b{display:block;margin-bottom:4px;text-transform:uppercase;font-weight:800;font-size:14px;letter-spacing:.03em}
+  .feedback.ok b{color:var(--ok)} .feedback.bad b{color:var(--red)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}}
+  .next{margin-top:14px;display:none}
+  .next.show{display:block}
+
+  /* Reward */
+  .reward{text-align:center}
+  .reward .big{font-weight:800;font-size:64px;color:var(--red);line-height:1;margin:6px 0 10px;animation:pop .4s}
+  .reward h2{font-weight:800;font-size:22px;text-transform:uppercase;margin-bottom:8px}
+  .reward p{color:var(--mute);margin-bottom:22px;font-size:16px}
+
+  /* Final */
+  .final{text-align:left}
+  .rank-name{font-weight:800;font-size:44px;line-height:1;text-transform:uppercase;margin:4px 0 10px}
+  .final .txt{font-size:17px;color:var(--mute);margin-bottom:18px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line);margin-bottom:18px}
+  .stats div{padding:14px 4px}
+  .stats div+div{border-left:1.5px solid var(--line);padding-left:14px}
+  .stats b{display:block;font-size:30px;font-weight:800}
+  .stats small{color:var(--mute);font-size:13px}
+  .regalia{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 22px}
+  .regalia span{border:2px solid var(--red);color:var(--red);border-radius:999px;padding:5px 12px;font-weight:800;font-size:13px;text-transform:uppercase}
+  .review{margin:6px 0 22px}
+  .review .r{display:grid;grid-template-columns:120px 1fr;gap:14px;padding:12px 0;border-bottom:1.5px solid var(--line);font-size:15px;line-height:1.35}
+  .review .r:first-of-type{border-top:1.5px solid var(--line)}
+  .review .r b{font-weight:800;font-size:19px}
+  .brand{display:flex;align-items:center;gap:16px;background:#fff;border-radius:22px;padding:14px 22px}
+  .brand .dots{display:flex;gap:7px}
+  .brand .dots i{width:11px;height:11px;border-radius:50%;background:#e05a4e}
+  .brand .dots i:nth-child(2){background:#e0b45e}
+  .brand .dots i:nth-child(3){background:#5cbf5a}
+  .brand .logo{height:30px;width:auto;display:block}
+  .brand .subj{margin-left:auto;font-weight:600;color:var(--mute);font-size:15px;white-space:nowrap}
+  .hidden{display:none!important}
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  @media (min-width:768px){
+    .brand .logo{height:34px}
+    body{padding:48px 24px}
+    .app{max-width:720px;gap:22px}
+    .head h1{font-size:52px}
+    .card{padding:36px 40px}
+    .pill-div{margin:0 -40px 26px}
+    .q{font-size:24px}
+    .opt{font-size:32px;padding:20px 10px}
+    .oitem{font-size:18px;padding:16px 4px}
+  }
+  @media (min-width:1200px){
+    .app{max-width:780px}
+  }
+  @media (max-height:700px) and (min-width:768px){
+    body{padding-top:24px}
+  }
+  @media (max-width:440px){
+    .brand{padding:11px 16px;gap:12px;border-radius:18px}
+    .brand .dots i{width:9px;height:9px}
+    .brand .logo{height:24px}
+    .brand .subj{font-size:13px}
+    .head h1{font-size:30px}
+    .card{padding:24px 18px}
+    .pill-div{margin:0 -18px 20px}
+    .pill{font-size:13px;padding:5px 12px}
+    .q{font-size:18px}
+    .opt{font-size:24px}
+    .rows .row{grid-template-columns:84px 1fr;gap:12px}
+    .rows .k{font-size:24px}
+    .st span{font-size:10px;visibility:hidden;white-space:nowrap}
+    .st.active span{visibility:visible}
+    .st:first-child.active span{align-self:flex-start}
+    .st:last-child.active span{align-self:flex-end}
+    .rank-name{font-size:36px}
+    .review .r{grid-template-columns:96px 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="brand">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <img class="logo" alt="znohub" src="data:image/png;base64,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">
+    <div class="subj">Історія України</div>
+  </div>
+
+  <!-- START -->
+  <header class="head" id="head">
+    <div class="kicker">Козацтво. Повторення</div>
+    <h1>Шлях до булави</h1>
+  </header>
+  <section class="card" id="startScreen">
+    <div class="rows">
+      <div class="row"><div class="k">5</div><div class="v"><b>станцій.</b> Від Хортиці до зруйнування Січі</div></div>
+      <div class="row"><div class="k">5:00</div><div class="v"><b>хвилин на все.</b> Час спливає — квест завершується</div></div>
+      <div class="row"><div class="k">16</div><div class="v"><b>завдань.</b> Дати, хронологія, «правда чи міф»</div></div>
+      <div class="row"><div class="k">+</div><div class="v"><b>Бонус за час.</b> Швидше — більше балів</div></div>
+    </div>
+    <div style="height:18px"></div>
+    <button class="btn" id="startBtn">Рушаймо в похід</button>
+  </section>
+
+  <!-- GAME -->
+  <div id="gameScreen" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+    <div class="hud">
+      <div class="timer" id="timer">5:00</div>
+      <div class="score"><span id="score">0</span> балів</div>
+    </div>
+    <div class="timebar"><div id="timebar" style="width:100%"></div></div>
+    <div class="map" id="map"></div>
+    <section class="card" id="qCard"></section>
+  </div>
+
+  <!-- FINAL -->
+  <section class="card final hidden" id="finalScreen"></section>
+</div>
+
+<script>
+const TOTAL = 300;
+
+const STATIONS = [
+  { name:"Витоки", icon:"🏝️", reward:"🚩", rewardName:"Бунчук", tasks:[
+    {t:"choice", q:"Перша писемна згадка про українських козаків (у хроніці Мартина Бєльського):",
+      a:"1489", o:["1489","1492","1556","1578"],
+      f:"1489 рік — козаки згадуються в польській хроніці Мартина Бєльського. А 1492 року кримський хан скаржився на напад «черкаських» козаків."},
+    {t:"choice", q:"Дмитро Вишневецький (Байда) збудував замок на острові Мала Хортиця — прообраз Запорозької Січі. Коли?",
+      a:"1556", o:["1556","1648","1578","1621"],
+      f:"Близько 1556 року Вишневецький об'єднав козаків у фортеці на Малій Хортиці — це вважають першою Січчю."},
+    {t:"tf", q:"1578 року за реформою короля Стефана Баторія реєстр збільшили до 500 козаків, а їхнім центром став Трахтемирів.",
+      a:true, f:"Правда. За реформою Стефана Баторія (1578) реєстрові козаки отримали платню, клейноди, власного старшого та місто Трахтемирів зі шпиталем."}
+  ]},
+  { name:"Повстання", icon:"🔥", reward:"🥁", rewardName:"Литаври", tasks:[
+    {t:"order", q:"Розташуй події в хронологічному порядку:",
+      items:[["Повстання Криштофа Косинського","1591–1593"],["Повстання Северина Наливайка","1594–1596"],["Хотинська битва","1621"],["«Ординація» Війська Запорозького","1638"]],
+      f:"Косинський (1591–1593) → Наливайко (1594–1596) → Хотин (1621) → Ординація (1638)."},
+    {t:"choice", q:"Хотинська битва, у якій прославився гетьман Петро Конашевич-Сагайдачний:",
+      a:"1621", o:["1618","1621","1625","1648"],
+      f:"1621 рік — козаки Сагайдачного допомогли зупинити величезне османське військо під Хотином."},
+    {t:"tf", q:"Повстання Северина Наливайка відбулося у 1637–1638 роках.",
+      a:false, f:"Неправда! Наливайко повстав у 1594–1596 рр. А 1637–1638 — повстання Павлюка, Острянина та Гуні."}
+  ]},
+  { name:"Хмельниччина", icon:"⚔️", reward:"🔱", rewardName:"Булава", tasks:[
+    {t:"choice", q:"Початок Національно-визвольної війни під проводом Богдана Хмельницького:",
+      a:"1648", o:["1638","1648","1654","1657"],
+      f:"1648 рік — повстання на Січі, перемоги під Жовтими Водами та Корсунем."},
+    {t:"order", q:"Розташуй битви й події Хмельниччини по порядку:",
+      items:[["Битва під Жовтими Водами","1648"],["Зборівська битва","1649"],["Битва під Берестечком","1651"],["Батозька битва","1652"],["Переяславська рада","1654"]],
+      f:"Жовті Води (1648) → Зборів (1649) → Берестечко (1651) → Батіг (1652) → Переяслав (1654)."},
+    {t:"tf", q:"Зборівський договір було підписано 1651 року.",
+      a:false, f:"Неправда! Зборівський договір — 1649 р. А 1651 року після Берестечка підписали Білоцерківський договір."},
+    {t:"choice", q:"Переяславська рада — укладення союзу з Московським царством:",
+      a:"1654", o:["1649","1654","1657","1667"],
+      f:"Січень 1654 року — Переяславська рада."}
+  ]},
+  { name:"Руїна", icon:"🏚️", reward:"📜", rewardName:"Печатка", tasks:[
+    {t:"choice", q:"Конотопська битва — перемога гетьмана Івана Виговського над московським військом:",
+      a:"1659", o:["1658","1659","1663","1709"],
+      f:"1659 рік. А роком раніше (1658) Виговський уклав Гадяцький договір."},
+    {t:"tf", q:"Андрусівське перемир'я 1667 року поділило українські землі по Дніпру між Московією та Річчю Посполитою.",
+      a:true, f:"Правда. Лівобережжя відійшло до Московії, Правобережжя — до Речі Посполитої."},
+    {t:"choice", q:"Полтавська битва, після якої Іван Мазепа був змушений залишити Україну:",
+      a:"1709", o:["1687","1700","1709","1710"],
+      f:"1709 рік — поразка шведсько-українських військ під Полтавою."}
+  ]},
+  { name:"Занепад Січі", icon:"🌅", reward:"🏳️", rewardName:"Хоругва", tasks:[
+    {t:"choice", q:"Конституція (Бендерська) Пилипа Орлика:",
+      a:"1710", o:["1654","1709","1710","1764"],
+      f:"1710 рік — один із перших конституційних документів Європи."},
+    {t:"order", q:"Останній крок! Розташуй події по порядку:",
+      items:[["Переяславська рада","1654"],["Полтавська битва","1709"],["Ліквідація гетьманства","1764"],["Зруйнування Запорозької Січі","1775"]],
+      f:"1654 → 1709 → 1764 → 1775."},
+    {t:"tf", q:"Запорозьку Січ зруйнували російські війська за наказом Катерини ІІ у 1775 році.",
+      a:true, f:"Правда. Червень 1775 року — кінець Нової Січі."}
+  ]}
+];
+
+const RANKS = [
+  {min:0,   icon:"🧒", name:"Джура", txt:"Похід лише починається! Повтори дати й спробуй ще раз."},
+  {min:60,  icon:"🗡️", name:"Козак", txt:"Добрий початок — шабля вже в руці!"},
+  {min:110, icon:"🎖️", name:"Сотник", txt:"Гідний результат! Ще трохи — і полк твій."},
+  {min:150, icon:"🛡️", name:"Полковник", txt:"Чудово знаєш історію козацтва!"},
+  {min:190, icon:"👑", name:"Гетьман", txt:"Неймовірно! Булава по праву твоя!"}
+];
+
+let st, ti, score, timeLeft, timerId, finished, correct, totalTasks, mistakes, regalia, answered;
+
+const $ = id => document.getElementById(id);
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+
+$("startBtn").onclick = start;
+
+function start(){
+  st=0; ti=0; score=0; timeLeft=TOTAL; finished=false; correct=0; mistakes=[]; regalia=[];
+  totalTasks = STATIONS.reduce((s,x)=>s+x.tasks.length,0);
+  $("startScreen").classList.add("hidden"); $("head").classList.add("hidden");
+  $("finalScreen").classList.add("hidden");
+  $("gameScreen").classList.remove("hidden");
+  $("score").textContent=0;
+  renderMap(); renderTask(); tick();
+  clearInterval(timerId);
+  timerId=setInterval(()=>{ timeLeft--; tick(); if(timeLeft<=0) finish(true); },1000);
+}
+
+function tick(){
+  const m=Math.floor(Math.max(timeLeft,0)/60), s=Math.max(timeLeft,0)%60;
+  $("timer").textContent=`${m}:${String(s).padStart(2,"0")}`;
+  $("timer").classList.toggle("warn", timeLeft<=30);
+  $("timebar").style.width = (Math.max(timeLeft,0)/TOTAL*100)+"%";
+}
+
+function renderMap(){
+  $("map").innerHTML = STATIONS.map((s,i)=>
+    `<div class="st ${i<st?'done':''} ${i===st?'active':''}"><div class="dot">${i<st?'✓':i+1}</div><span>${s.name}</span></div>`
+  ).join("");
+}
+
+function addScore(n){ score+=n; $("score").textContent=score; }
+
+function renderTask(){
+  answered=false;
+  const S=STATIONS[st], T=S.tasks[ti];
+  const label = {choice:"Обери дату", tf:"Правда чи міф?", order:"Хронологія"}[T.t];
+  let html = `<div class="pill-div"><span class="pill">Станція ${st+1} — ${S.name}</span></div>
+    <div class="qmeta"><div class="label" style="margin:0">${label}</div><div class="qcount">${ti+1} / ${S.tasks.length}</div></div>
+    <div class="q">${T.q}</div>`;
+  if(T.t==="choice"){
+    html += `<div class="opts">${shuffle(T.o).map(o=>`<button class="opt" data-v="${o}">${o}</button>`).join("")}</div>`;
+  } else if(T.t==="tf"){
+    html += `<div class="opts tf"><button class="opt" data-v="true">Правда</button><button class="opt" data-v="false">Міф</button></div>`;
+  } else {
+    html += `<p class="hint">Натискай події від найдавнішої до найпізнішої. Повторне натискання — скасувати.</p>
+      <div class="order-list">${shuffle(T.items.map((it,i)=>({it,i}))).map(o=>
+        `<button class="oitem" data-i="${o.i}"><span class="num"></span><span>${o.it[0]}</span><span class="yr">${o.it[1]}</span></button>`).join("")}</div>
+      <button class="btn" id="checkBtn" disabled>Перевірити</button>`;
+  }
+  html += `<div class="feedback" id="fb"></div><button class="btn next" id="nextBtn">Далі</button>`;
+  $("qCard").innerHTML = html;
+  $("qCard").style.animation="none"; void $("qCard").offsetWidth; $("qCard").style.animation="pop .3s";
+
+  if(T.t==="order") setupOrder(T);
+  else $("qCard").querySelectorAll(".opt").forEach(b=>b.onclick=()=>answerChoice(b,T));
+  $("nextBtn").onclick = next;
+}
+
+function answerChoice(btn,T){
+  if(answered||finished) return; answered=true;
+  const val = T.t==="tf" ? btn.dataset.v==="true" : btn.dataset.v;
+  const ok = val===T.a;
+  $("qCard").querySelectorAll(".opt").forEach(b=>{
+    b.disabled=true;
+    const v = T.t==="tf" ? b.dataset.v==="true" : b.dataset.v;
+    if(v===T.a) b.classList.add("ok");
+  });
+  if(!ok) btn.classList.add("bad");
+  result(ok,T, T.t==="tf" ? (T.a?"Правда":"Міф") : T.a);
+}
+
+function setupOrder(T){
+  const picked=[];
+  const items=[...$("qCard").querySelectorAll(".oitem")];
+  const redraw=()=>{
+    items.forEach(b=>{
+      const p=picked.indexOf(+b.dataset.i);
+      b.classList.toggle("sel",p>=0);
+      b.querySelector(".num").textContent = p>=0 ? p+1 : "";
+    });
+    $("checkBtn").disabled = picked.length!==items.length;
+  };
+  items.forEach(b=>b.onclick=()=>{
+    if(answered||finished) return;
+    const i=+b.dataset.i, p=picked.indexOf(i);
+    if(p>=0) picked.splice(p); else picked.push(i);
+    redraw();
+  });
+  $("checkBtn").onclick=()=>{
+    if(answered||finished) return; answered=true;
+    let allOk=true;
+    items.forEach(b=>{
+      const i=+b.dataset.i, p=picked.indexOf(i);
+      const ok = p===i;
+      if(!ok) allOk=false;
+      b.classList.add(ok?"ok":"bad","reveal"); b.disabled=true;
+    });
+    $("checkBtn").classList.add("hidden");
+    result(allOk,T,T.items.map(x=>x[1]).join(" → "), allOk?15:0);
+  };
+}
+
+function result(ok,T,correctText,pts){
+  if(ok){ correct++; addScore(pts||10); }
+  else mistakes.push({q:T.q.replace(/:$/,""), a: T.t==="order" ? T.f : correctText, order:T.t==="order", items:T.items});
+  const fb=$("fb");
+  fb.className="feedback show "+(ok?"ok":"bad");
+  fb.innerHTML=`<b>${ok?"Влучно, козаче! +"+(pts||10):"Промах"}</b>${T.f}`;
+  $("nextBtn").classList.add("show");
+  $("nextBtn").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function next(){
+  if(finished) return;
+  const S=STATIONS[st];
+  ti++;
+  if(ti>=S.tasks.length){
+    regalia.push(S.rewardName);
+    showReward(S);
+  } else renderTask();
+}
+
+function showReward(S){
+  const last = st===STATIONS.length-1;
+  $("qCard").innerHTML = `<div class="reward"><div class="pill-div"><span class="pill">Станцію пройдено</span></div>
+    <div class="label">Здобуто клейнод</div>
+    <div class="big">${S.rewardName}</div>
+    <h2>${S.name}</h2>
+    <p>${st+1} з ${STATIONS.length} станцій позаду</p>
+    <button class="btn" id="goBtn">${last?"До фінальної ради":"Наступна станція"}</button></div>`;
+  st++; ti=0; renderMap();
+  $("goBtn").onclick = ()=> last ? finish(false) : renderTask();
+}
+
+function finish(timeout){
+  if(finished) return; finished=true;
+  clearInterval(timerId);
+  const bonus = timeout ? 0 : Math.round(Math.max(timeLeft,0)/3);
+  score += bonus;
+  const rank = [...RANKS].reverse().find(r=>score>=r.min);
+  const used = TOTAL-Math.max(timeLeft,0);
+  $("gameScreen").classList.add("hidden");
+  const f=$("finalScreen"); f.classList.remove("hidden");
+  f.innerHTML = `<div class="pill-div"><span class="pill">${timeout?"Час вичерпано":"Квест завершено"}</span></div>
+    <div class="label">Твоє звання</div>
+    <div class="rank-name">${rank.name}</div>
+    <p class="txt">${rank.txt}</p>
+    <div class="stats">
+      <div><b>${score}</b><small>балів${bonus?` · +${bonus} за час`:""}</small></div>
+      <div><b>${correct}/${totalTasks}</b><small>правильних</small></div>
+      <div><b>${Math.floor(used/60)}:${String(used%60).padStart(2,"0")}</b><small>витрачено</small></div>
+    </div>
+    <div class="label">Здобуті клейноди</div>
+    <div class="regalia">${regalia.length?regalia.map(r=>`<span>${r}</span>`).join(""):"<small style='color:#6f6f6f'>Поки жодного</small>"}</div>
+    ${mistakes.length?`<div class="label">Що варто повторити</div><div class="review">${
+      mistakes.map(m=> m.order
+        ? m.items.map(x=>`<div class="r"><b>${x[1]}</b><span>${x[0]}</span></div>`).join("")
+        : `<div class="r"><b>${m.a}</b><span>${m.q}</span></div>`).join("")}</div>`
+      : `<p class="txt">Жодної помилки — справжній знавець!</p>`}
+    <button class="btn" id="againBtn">Пройти ще раз</button>`;
+  $("againBtn").onclick=start;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+</script>
+</body>
+</html>
